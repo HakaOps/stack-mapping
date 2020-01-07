@@ -1,0 +1,6 @@
+---
+- name: Get Information from Windows Servers 
+  hosts: all 
+  become: false
+  roles:
+    - windows-mapping

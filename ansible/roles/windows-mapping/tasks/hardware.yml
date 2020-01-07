@@ -1,0 +1,29 @@
+---
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+# Description: Get IP / HOSTNAME / OS / CPU / MEMORY / DISK Informations and push on Consul (Windows)
+#
+
+- name: PUSH HOSTIP INDEX
+  win_shell: |
+    $ANSIBLE_HOST="{{ ansible_host }}"
+    Invoke-RestMethod '{{ consul_url }}/hosts.index/{{ ansible_host }}' -Method PUT -Body $ANSIBLE_HOST
+
+- name: Get disk facts
+  register: disk_output
+  win_shell: |
+    gdr -PSProvider 'FileSystem'
+
+- name: GET ALL HARDWARE INFORMATIONS
+  vars:
+    hardware_list:
+      - "net/hostname:{{ ansible_hostname }}"
+      - "generic/os:{{ansible_distribution}} {{ansible_distribution_major_version}} {{ansible_distribution_version}}"
+      - "generic/os.suffix:windows"
+      - "hardware/cpu:{{ ansible_processor_vcpus }}"
+      - "hardware/cpu_model:{{ ansible_processor[1] }}"
+      - "hardware/memory:{{ ansible_memtotal_mb }}"
+      - "hardware/disk:{{ disk_output.stdout }}"
+  win_shell: |
+    $VALUE="{{ item.split(':')[1] }}"
+    Invoke-RestMethod "{{ consul_url }}/hosts/{{ ansible_host }}/{{ item.split(':')[0] }}" -Method PUT -Body $VALUE
+  with_items: "{{ hardware_list }}"

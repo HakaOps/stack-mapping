@@ -1,0 +1,9 @@
+---
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+# Description: Playbook example 
+#
+
+- name: PUSH HARDWARE INFO 
+  hosts: all 
+  roles:
+    - linux-mapping

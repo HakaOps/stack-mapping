@@ -1,0 +1,7 @@
+---
+
+# Defaul Consul Host
+consul_host: '127.0.0.1'
+
+# Default Consul Port
+consul_port: '8500'

@@ -1,0 +1,4 @@
+---
+
+# Defaul Consul API URL
+consul_url: 'http://consul.foo.bar:8500/v1/kv'

@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('GIT Pull Repo') {
+            steps {
+                git credentialsId: 'jenkins-key', url: 'git@github.com:vagnerd/stack-mapping.git'
+            }
+        }
+        
+        stage('Run AWX Linux Assessment') {
+            steps {
+                ansibleTower credential: 'ssh-key', extraVars: '', importTowerLogs: true, importWorkflowChildLogs: false, inventory: 'linux-servers', jobTags: '', jobTemplate: 'linux-inventory', jobType: 'run', limit: '', removeColor: false, skipJobTags: '', templateType: 'job', throwExceptionWhenFail: false, towerServer: 'AWX Server', verbose: true
+            }
+        }
+
+        stage('Run AWX Windows Assessment') {
+            steps {
+                ansibleTower credential: 'windows-admin', extraVars: '', importTowerLogs: true, importWorkflowChildLogs: false, inventory: 'windows-servers', jobTags: '', jobTemplate: 'windows-inventory', jobType: 'run', limit: '', removeColor: false, skipJobTags: '', templateType: 'job', throwExceptionWhenFail: false, towerServer: 'AWX Server', verbose: true
+            }
+        }
+        
+        stage('Building image') {
+            steps {
+                script {
+                    docker.build("jenkins-local/aws-inventory", "./scripts/aws-inventory")
+                }
+            }
+        }    
+        
+        stage('Run Docker AWS Inventory') {
+            agent {
+                docker { 
+                    image 'jenkins-local/aws-inventory'
+                    args '-u root:root -e AWS_SECRET_ACCESS_KEY_ID=${params.AWS_SECRET_ACCESS_KEY_ID} -e AWS_SECRET_ACCESS_KEY=${params.AWS_SECRET_ACCESS_KEY}'
+                }
+            }
+            steps {
+                sh "cd /usr/src/app && python inventory.py"
+            }
+        }
+        
+        stage('Extract Reports') {
+            steps {
+                sh "cd ./scripts && ./extract.sh ../out.csv"
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'out.csv', onlyIfSuccessful: true
+        }
+        
+    }
+}

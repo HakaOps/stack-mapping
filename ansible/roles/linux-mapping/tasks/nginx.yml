@@ -1,0 +1,35 @@
+---
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+# Description: Get nginx informations and push on Consul (Linux)
+# Requirements: python-consul (python library)
+#
+
+- command: "ls /etc/nginx/sites-enabled"
+  register: nginx_vhosts_files 
+
+- name: GET ALL NGINX CONFIGS
+  shell: |
+    grep '^[[:blank:]]*[^[:blank:]#;]' /etc/nginx/sites-enabled/{{ item[0] }} | grep "{{ item[1] }} " | awk '{ $1 = ""; print $0; }' | tr -d '{};' | tr -d '\[\:\:\]\:' | uniq
+  register: nginx_info_output_array
+  with_nested:
+    - "{{ nginx_vhosts_files.stdout_lines }}"
+    - [ 'server_name', 'root', 'listen', 'location', 'proxy_pass' ]
+
+- name: PUSH NGINX INDEX 
+  consul_kv:
+    host: "{{ consul_host }}"
+    port: "{{ consul_port }}"
+    key: "hosts/{{ ansible_host }}/nginx/vhosts.index/{{ item.item[0] }}"
+    value: "{{ item.item[0] }}"
+  with_items: "{{ nginx_info_output_array.results }}"
+
+- name: PUSH NGINX INFO TO CONSUL 
+  consul_kv:
+    host: "{{ consul_host }}"
+    port: "{{ consul_port }}"
+    key: "hosts/{{ ansible_host }}/nginx/vhosts/{{ item.item[0] }}/{{ item.item[1] }}"
+    value: "{{ item.stdout }}"
+  with_items: "{{ nginx_info_output_array.results }}"
+
+#- debug:
+#    msg: "{{ nginx_info_output_array }}"

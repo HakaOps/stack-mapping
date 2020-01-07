@@ -1,0 +1,6 @@
+---
+- name: Including tasks for hardware information
+  include_tasks: hardware.yml
+  
+- name: Including tasks for iis   
+  include_tasks: iis.yml

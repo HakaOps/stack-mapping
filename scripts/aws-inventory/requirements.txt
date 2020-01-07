@@ -1,0 +1,5 @@
+jupyter-linter
+pylint
+aws
+boto3
+consul_kv

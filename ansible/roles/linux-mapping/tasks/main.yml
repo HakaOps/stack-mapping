@@ -1,0 +1,30 @@
+---
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+#
+
+# Install PIP
+- name: Install Python PIP 
+  package:
+    name: python3-pip 
+    state: present
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'  
+
+# Install Consul Module
+- pip:
+    name: python-consul
+    state: latest
+
+# Include hardware inventory playbook
+- name: Including tasks for hardware information
+  include_tasks: hardware.yml
+
+# Check nginx install
+- name: CHECK NGINX CONFIG FILE
+  stat:
+    path: /etc/nginx/nginx.conf
+  register: nginx_conf_file
+
+# Include nginx inventory playbook
+- name: Including tasks for nginx information
+  include_tasks: nginx.yml
+  when: nginx_conf_file.stat.exists == true

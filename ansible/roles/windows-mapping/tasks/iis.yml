@@ -1,0 +1,15 @@
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+# Description: Get IIS Informations and push on Consul
+#
+---
+- name: List IIS sites
+  vars:
+    iis_items:
+      - "iis/site:site"
+      - "iis/app:app"
+      - "iis/vdir:vdir"
+      - "iis/apppool:apppool"
+  win_shell: |
+    $VALUE=c:\windows\system32\inetsrv\appcmd.exe list "{{ item.split(':')[1] }}"
+    Invoke-RestMethod "{{ consul_url }}/hosts/{{ ansible_host }}/{{ item.split(':')[0] }}" -Method PUT -Body $VALUE
+  with_items: "{{ iis_items }}"

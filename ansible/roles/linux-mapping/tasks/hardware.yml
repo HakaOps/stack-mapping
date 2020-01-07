@@ -1,0 +1,41 @@
+---
+# Author: Vagner Rodrigues Fernandes <vagner.rodrigues@gmail.com>
+# Description: Get IP / HOSTNAME / OS / CPU / MEMORY / DISK Informations and push on Consul (Linux)
+# Requirements: python-consul (python library)
+#
+
+- name: PUSH LINUX GROUPS INDEX
+  consul_kv:
+    host: "{{ consul_host }}"
+    port: "{{ consul_port }}" 
+    key: "group.index"
+    value: "{{ groups | to_json }}"
+
+- name: PUSH HOSTIP INDEX
+  consul_kv:
+    host: "{{ consul_host }}"
+    port: "{{ consul_port }}" 
+    key: "hosts.index/{{ ansible_host }}"
+    value: "{{ ansible_host }}"
+
+- name: GET DISK INFO 
+  shell: |
+    df -h | grep '/dev/[h-s]d' | awk '{ print $1 "-" $2 "-" $6 }'
+  register: df_output
+
+- name: GET ALL HARDWARE INFORMATIONS
+  vars:
+    hardware_list:
+      - "net/hostname:{{ ansible_hostname }}"
+      - "generic/os:{{ansible_distribution}} {{ansible_distribution_major_version}} {{ansible_distribution_version}}"
+      - "generic/os.suffix:linux"
+      - "hardware/cpu:{{ ansible_processor_vcpus }}"
+      - "hardware/cpu_model:{{ ansible_processor[2] }}"
+      - "hardware/memory:{{ ansible_memtotal_mb }}"
+      - "hardware/disk:{{ df_output.stdout }}"
+  consul_kv:
+    host: "{{ consul_host }}"
+    port: "{{ consul_port }}"
+    key: "hosts/{{ ansible_host }}/{{ item.split(':')[0] }}"
+    value: "{{ item.split(':')[1] }}"
+  with_items: "{{ hardware_list }}"
